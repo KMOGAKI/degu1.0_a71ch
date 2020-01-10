@@ -1,0 +1,6 @@
+sample:
+  name: Example Set A71CH
+tests:
+  sample.mainA71CH:
+    platform_whitelist: degu_evk
+    tags: se_hostlib mbedTLS

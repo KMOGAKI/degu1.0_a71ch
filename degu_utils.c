@@ -21,6 +21,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
+#define CONFIG_SECURE_ELEMENT
 #include <net/net_ip.h>
 #include <net/net_if.h>
 #include <net/socket.h>
@@ -31,6 +32,15 @@
 #include <shell/shell.h>
 #include "zcoap.h"
 #include "degu_test.h"
+#ifdef CONFIG_SECURE_ELEMENT
+#define I2C
+#include "a71ch_api.h"
+#include "a71ch_const.h"
+#include "a71_debug.h"
+#include "ax_api.h"
+
+static const unsigned short GP_UNIT_BYTE = 128;
+#endif /* CONFIG_SECURE_ELEMENT */
 
 extern char *net_byte_to_hex(char *ptr, u8_t byte, char base, bool pad);
 extern char *net_sprint_addr(sa_family_t af, const void *addr);
