@@ -1,0 +1,92 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 11769ed..7662bd6 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -13,6 +13,7 @@ add_definitions(
+   -DFTR_FILE_SYSTEM
+   -DTGT_A71CH
+   -DI2C
++  -DNO_SECURE_CHANNEL_SUPPORT
+   -DMBEDTLS
+   -DSCP_MODE=NO_C_MAC_NO_C_ENC_NO_R_MAC_NO_R_ENC
+   )
+diff --git a/common/axHostCrypto.h b/common/axHostCrypto.h
+index 1eee9cb..e7deaca 100644
+--- a/common/axHostCrypto.h
++++ b/common/axHostCrypto.h
+@@ -55,12 +55,6 @@ typedef mbedtls_cipher_context_t axHcCmacCtx_t;
+ #define HOST_DECRYPT    (0)  //!< Request decrypt operation
+ #endif // MBEDTLS
+ 
+-#ifdef NO_SECURE_CHANNEL_SUPPORT
+-typedef struct {
+-    int dummy;
+-} axHcCmacCtx_t;
+-#endif // NO_SECURE_CHANNEL_SUPPORT
+-
+ /* The error code defines follow the OpenSSL conventions */
+ #define HOST_CRYPTO_NOT_SUPPORTED -1  //!< Crypto engine does not support implementation
+ #define HOST_CRYPTO_ERROR          0  //!< Failure
+diff --git a/common/sci2c.c b/common/sci2c.c
+index af573b9..8bd4317 100644
+--- a/common/sci2c.c
++++ b/common/sci2c.c
+@@ -955,6 +955,7 @@ static i2c_status_t sci2c_ReadBlock(sci2c_Data_t * pSci2cData, U8 * pRead, U16 *
+    {
+       sm_printf(DBGOUT,"Protocol exception %02X %02X\n", pRead[0], pRead[1]);
+       *pReadLen = readlen;
++      for (; ; )
+       sm_sleep(DELAY_MSEC);
+       return i2c_Sci2cException;
+    }
+diff --git a/common/scp.c b/common/scp.c
+index 15ae958..955ad5d 100644
+--- a/common/scp.c
++++ b/common/scp.c
+@@ -86,6 +86,13 @@ U16 SCP_Subscribe(SCP_SignalFunction callback, void *context)
+     return SCP_OK;
+ }
+ 
++#else
++
++U16 SCP_Subscribe(void *callback, void *context)
++{
++    return SCP_OK;
++}
++
+ #endif
+ 
+ 
+diff --git a/platform/i2c_a7.c b/platform/i2c_a7.c
+index 1fa2ad5..8805832 100644
+--- a/platform/i2c_a7.c
++++ b/platform/i2c_a7.c
+@@ -36,7 +36,7 @@
+ #include <i2c.h>
+ #endif
+ 
+-// #define LOG_I2C 1
++#define LOG_I2C 1
+ 
+ #ifdef LINUX
+ static int axSmDevice;
+diff --git a/tst/tst_a71ch_util.h b/tst/tst_a71ch_util.h
+index 20b07de..afc869b 100644
+--- a/tst/tst_a71ch_util.h
++++ b/tst/tst_a71ch_util.h
+@@ -32,9 +32,15 @@ extern "C" {
+ #define INIT_MODE_RESET                     0x00  //!< Only issue a Debug Reset
+ #define INIT_MODE_RESET_SELECT              0x01  //!< Issue a Debug Reset with a subsequent applet select
+ #define INIT_MODE_NO_RESET                  0x02  //!< Skip resetting secure element
++#if !defined(NO_SECURE_CHANNEL_SUPPORT)
+ #define INIT_MODE_RESET_DO_SCP03            0x80  //!< Issue a Debug Reset, next setup SCP03 channel
+ #define INIT_MODE_RESET_SELECT_DO_SCP03     0x81  //!< Issue a Debug Reset, do a subsequent applet select, next setup SCP03 channel
+ #define INIT_MODE_NO_RESET_DO_SCP03         0x82  //!< Setup SCP03 channel
++#else
++#define INIT_MODE_RESET_DO_SCP03            INIT_MODE_RESET
++#define INIT_MODE_RESET_SELECT_DO_SCP03     INIT_MODE_RESET_SELECT
++#define INIT_MODE_NO_RESET_DO_SCP03         INIT_MODE_NO_RESET
++#endif
+ 
+ /// @cond
+ #define INIT_MODE_RESET_MASK                0x03
